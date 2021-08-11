@@ -44,4 +44,10 @@ Route::get("removecart/{id}","API\CartDataController@removecart");
 Route::get("addcomplain","API\ApiController@addcomplain");
 Route::get("save_token","API\ApiController@save_token");
 Route::get("gethelp/{id}","API\ApiController@gethelp");
-Route::get("testconnection","API\ApiController@testconnection");
+Route::any("testconnection","API\ApiController@testconnection");
+
+Route::group(['prefix' => '/sqlsrv'], function (){
+    Route::any("userregister","API\SqlSrvController@userregister");
+    Route::get("login","API\SqlSrvController@Showlogin");
+    
+});

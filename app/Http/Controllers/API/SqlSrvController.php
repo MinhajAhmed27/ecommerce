@@ -40,17 +40,19 @@ use App\Model\QueryAns;
 use App\Model\QueryTopic;
 use App\Model\Token;
 use App\Model\Complain;
-use App\Model\EntityAdvertizer;
 use App\Model\Pages;
+use App\Model\EntityAdvertizer;
 use DateTimeZone;
 use DateTime;
 use Image;
 use Mail;
 use DB;
-class ApiController extends Controller {
+class SqlSrvController extends Controller {
     public function __construct() {
          parent::callschedule();
     }
+
+
     public function postplaceorder(Request $request){
         $response = array("status" => "0", "msg" => "Validation error");
            $rules = [
@@ -682,355 +684,7 @@ class ApiController extends Controller {
 
 
   
-  public function Showlogin(Request $request){
-        $response = array("success" => "0", "register" => "Validation error");
-           $rules = [
-                      'login_type' => 'required',
-                      'token' => 'required',
-                      'token_type'=>'required',
-                      'email' => 'required'      
-                    ];
-                    if($request->input('login_type')=='1'){
-                        $rules['password'] = 'required';
-                    }
-                    if($request->input('login_type')=='2'||$request->input('login_type')=='3'){
-                        $rules['soical_id'] = 'required';
-                        $rules['name']='required';
-                    }
-                   
-            $messages = array(
-                      'login_type.required' => "login_type is required",
-                      'token.required' => "token is required",
-                      'token_type.required' => "token_type is required",
-                      'email.required' => "email is required",
-                      'password.required'=>"password is required",
-                      "soical_id.required"=>"soical_id is required",
-                      "name.required"=>"name is required"
-            );
-            $validator = Validator::make($request->all(), $rules, $messages);
-            if ($validator->fails()) {
-                  $message = '';
-                  $messages_l = json_decode(json_encode($validator->messages()), true);
-                  foreach ($messages_l as $msg) {
-                         $message .= $msg[0] . ", ";
-                  }
-                  $response['register'] = $message;
-            } else {
-                      $setting=Setting::find(1);
-                      if($request->input('login_type')=='1'){
-                      $user=User::where("email",$request->get("email"))->where("password",$request->get("password"))->first();
-                      if($user){
-                              if($setting->customer_reg_email=='1'&&$user->is_email_verified=='0'){
-                                   $response = array("status" =>0, "msg" => "Please Verified Your Email");
-                              }
-                              else{
-                              $gettoken=Token::where("token",$request->get("token"))->first();
-                              if(!$gettoken){
-                                     $store=new Token();
-                                     $store->token=$request->get("token");
-                                     $store->type=$request->get("token_type");
-                                     $store->user_id=$user->id;
-                                     $store->save();
-                              }
-                              else{
-                                     $gettoken->user_id=$user->id;
-                                     $gettoken->save();
-                              }
-                                    
-                                     if($user->soical_id==null){
-                                        $user->soical_id="";
-                                     }
-                                   if($user->billing_address==null){
-                                      $user->billing_address="";
-                                   }
-                                   if($user->shipping_address==null){
-                                      $user->shipping_address="";
-                                   }
-                                   if($user->profile_pic==null){
-                                      $user->profile_pic="";
-                                   }
-                                   if($user->first_name==null){
-                                      $user->first_name="";
-                                   }
-                                   if($user->address==null){
-                                      $user->address="";
-                                   }
-                                   if($user->phone==null){
-                                      $user->phone="";
-                                   }
-                                   if($user->last_name==null){
-                                      $user->last_name="";
-                                   }
-                                    $cartdata=CartData::where("user_id",$user->id)->get();
-                                    $wishdata=Wishlist::where("user_id",$user->id)->get();
-                                    $user->cart=count($cartdata);
-                                    $user->totalwish=count($wishdata);
-                                      $response = array("status" =>1, "msg" => "Login Successfully","data"=>$user);
-                               }
-                              }
-                            else{
-                                 $response = array("status" =>0, "msg" => "Login Credentials Are Wrong");
-                            }
-                 }
-                 if($request->input('login_type')=='2'){
-                    $checkuser=User::where("email",$request->get("email"))->orwhere("soical_id",$request->get("soical_id"))->first();
-                    if($checkuser){//login
-                      $gettoken=Token::where("token",$request->get("token"))->first();
-                              if(!$gettoken){
-                                     $store=new Token();
-                                    $store->token=$request->get("token");
-                             $store->type=$request->get("token_type");
-                             $store->user_id=$checkuser->id;
-                             $store->save();
-                              }
-                               else{
-                                     $gettoken->user_id=$checkuser->id;
-                                     $gettoken->save();
-                              }
-                          
-                          if($checkuser->soical_id==null){
-                                      $checkuser->soical_id="";
-                                   }
-                                   if($checkuser->billing_address==null){
-                                      $checkuser->billing_address="";
-                                   }
-                                   if($checkuser->shipping_address==null){
-                                      $checkuser->shipping_address="";
-                                   }
-                                   if($checkuser->profile_pic==null){
-                                      $checkuser->profile_pic="";
-                                   }
-                                   if($checkuser->first_name==null){
-                                      $checkuser->first_name="";
-                                   }
-                                   if($checkuser->address==null){
-                                      $checkuser->address="";
-                                   }
-                                   if($checkuser->phone==null){
-                                      $checkuser->phone="";
-                                   }
-                                   if($checkuser->last_name==null){
-                                      $checkuser->last_name="";
-                                   }
-                                    if($checkuser->permissions==null){
-                                      $checkuser->permissions="";
-                                   }
-                                    if($checkuser->last_login==null){
-                                      $checkuser->last_login="";
-                                   }
-                                  
-                                     if($request->get("image")!=""){
-                                         $png_url = "profile-".mt_rand(100000, 999999).".png";
-                                         $path = public_path().'/upload/profile/' . $png_url;
-                                         $content=$this->file_get_contents_curl($request->get("image"));
-                                            $savefile = fopen($path, 'w');
-                                            fwrite($savefile, $content);
-                                            fclose($savefile);
-                                            $img=public_path().'/upload/profile/' . $png_url;
-                                          $checkuser->profile_pic=$png_url;
-                                     }
-                           
-                                    $checkuser->soical_id=$request->get("soical_id");
-                                    $checkuser->login_type=$request->input('login_type');
-                                    $checkuser->save();
-                                    $cartdata=CartData::where("user_id",$checkuser->id)->get();
-                                    $wishdata=Wishlist::where("user_id",$checkuser->id)->get();
-                                    $checkuser->cart=count($cartdata);
-                                    $checkuser->totalwish=count($wishdata);
-                           $response = array("status" =>1, "msg" => "Login Successfully","data"=>$checkuser);
-                    }
-                    else{//register
-                       
-                            $png_url="";
-                            if($request->get("image")!=""){
-                                 $png_url = "profile-".mt_rand(100000, 999999).".png";
-                                 $path = public_path().'/upload/profile/' . $png_url;
-                                 $content=$this->file_get_contents_curl($request->get("image"));
-                                            $savefile = fopen($path, 'w');
-                                            fwrite($savefile, $content);
-                                            fclose($savefile);
-                                            $img=public_path().'/upload/profile/' . $png_url;
-                            }
-                            $str=explode(" ", $request->get("name"));
-                            $store=new User();
-                            $store->first_name=$str[0];
-                            $store->email=$request->get("email");
-                            $store->login_type=$request->get("login_type");
-                            $store->is_email_verified="1";
-                            $store->profile_pic=$png_url;
-                            $store->soical_id=$request->get("soical_id");
-                            $store->save();
-                            $gettoken=Token::where("token",$request->get("token"))->update(["user_id"=>$store->id]);
-                             if($store->soical_id==null){
-                                      $store->soical_id="";
-                                   }
-                                   if($store->billing_address==null){
-                                      $store->billing_address="";
-                                   }
-                                   if($store->shipping_address==null){
-                                      $store->shipping_address="";
-                                   }
-                                   if($store->profile_pic==null){
-                                      $store->profile_pic="";
-                                   }
-                                   if($store->first_name==null){
-                                      $store->first_name="";
-                                   }
-                                   if($store->address==null){
-                                      $store->address="";
-                                   }
-                                   if($store->phone==null){
-                                      $store->phone="";
-                                   }
-                                   if($store->last_name==null){
-                                      $store->last_name="";
-                                   }
-                                     if($store->permissions==null){
-                                      $store->permissions="";
-                                   }
-                                    if($store->last_login==null){
-                                      $store->last_login="";
-                                   }
-
-                                    $cartdata=CartData::where("user_id",$store->id)->get();
-                                    $wishdata=Wishlist::where("user_id",$store->id)->get();
-                                    $store->cart=count($cartdata);
-                                    $store->totalwish=count($wishdata);
-                             $response = array("status" =>1, "msg" => "Login Successfully","data"=>$store);
-                      
-                        
-                    }
-                 }
-                if($request->input('login_type')=='3'){
-                       $checkuser=User::where("email",$request->get("email"))->orwhere("soical_id",$request->get("soical_id"))->first();
-                    if($checkuser){//login
-                      
-                          $gettoken=Token::where("token",$request->get("token"))->first();
-                              if(!$gettoken){
-                                     $store=new Token();
-                           $store->token=$request->get("token");
-                           $store->type=$request->get("token_type");
-                           $store->user_id=$checkuser->id;
-                           $store->save();
-                              } else{
-                                     $gettoken->user_id=$checkuser->id;
-                                     $gettoken->save();
-                              }
-                            if($checkuser->soical_id==null){
-                                      $checkuser->soical_id="";
-                                   }
-                           
-                                   if($checkuser->billing_address==null){
-                                      $checkuser->billing_address="";
-                                   }
-                                   if($checkuser->shipping_address==null){
-                                      $checkuser->shipping_address="";
-                                   }
-                                   if($checkuser->profile_pic==null){
-                                      $checkuser->profile_pic="";
-                                   }
-                                   if($checkuser->first_name==null){
-                                      $checkuser->first_name="";
-                                   }
-                                   if($checkuser->address==null){
-                                      $checkuser->address="";
-                                   }
-                                   if($checkuser->phone==null){
-                                      $checkuser->phone="";
-                                   }
-                                   if($checkuser->last_name==null){
-                                      $checkuser->last_name="";
-                                   }
-                                    if($checkuser->permissions==null){
-                                      $checkuser->permissions="";
-                                   }
-                                    if($checkuser->last_login==null){
-                                      $checkuser->last_login="";
-                                   }
-                                   if($request->get("image")!=""){
-                                            $png_url = "profile-".mt_rand(100000, 999999).".png";
-                                            $path = public_path().'/upload/profile/' . $png_url;
-                                            $content=$this->file_get_contents_curl($request->get("image"));
-                                            $savefile = fopen($path, 'w');
-                                            fwrite($savefile, $content);
-                                            fclose($savefile);
-                                            $img=public_path().'/upload/profile/' . $png_url;
-                                            $checkuser->profile_pic=$png_url;
-                                     }
-                           
-                                    $checkuser->soical_id=$request->get("soical_id");
-                                    $checkuser->login_type=$request->input('login_type');
-                                    $checkuser->save();
-                                    $cartdata=CartData::where("user_id",$checkuser->id)->get();
-                                    $wishdata=Wishlist::where("user_id",$checkuser->id)->get();
-                                    $checkuser->cart=count($cartdata);
-                                    $checkuser->totalwish=count($wishdata);
-                           $response = array("status" =>1, "msg" => "Login Successfully","data"=>$checkuser);
-                    }
-                    else{//register
-                       
-                            $png_url="";
-                            if($request->get("image")!=""){
-                                 $png_url = "profile-".mt_rand(100000, 999999).".png";
-                                 $content=$this->file_get_contents_curl($request->get("image"));
-                                            $savefile = fopen($path, 'w');
-                                            fwrite($savefile, $content);
-                                            fclose($savefile);
-                                            $img=public_path().'/upload/profile/' . $png_url;
-                            }
-                            $str=explode(" ", $request->get("name"));
-                            $store=new User();
-                            $store->first_name=$str[0];
-                            $store->email=$request->get("email");
-                            $store->login_type=$request->get("login_type");
-                            $store->profile_pic=$png_url;
-                            $store->is_email_verified="1";
-                            $store->soical_id=$request->get("soical_id");
-                            $store->save();
-                            $gettoken=Token::where("token",$request->get("token"))->update(["user_id"=>$store->id]);
-                            if($store->soical_id==null){
-                                      $store->soical_id="";
-                                   }
-                                   if($store->billing_address==null){
-                                      $store->billing_address="";
-                                   }
-                                   if($store->shipping_address==null){
-                                      $store->shipping_address="";
-                                   }
-                                   if($store->profile_pic==null){
-                                      $store->profile_pic="";
-                                   }
-                                   if($store->first_name==null){
-                                      $store->first_name="";
-                                   }
-                                   if($store->address==null){
-                                      $store->address="";
-                                   }
-                                   if($store->phone==null){
-                                      $store->phone="";
-                                   }
-                                   if($store->last_name==null){
-                                      $store->last_name="";
-                                   }
-                                     if($store->permissions==null){
-                                      $store->permissions="";
-                                   }
-                                    if($store->last_login==null){
-                                      $store->last_login="";
-                                   }
-                                   $cartdata=CartData::where("user_id",$store->id)->get();
-                                    $wishdata=Wishlist::where("user_id",$store->id)->get();
-                                    $store->cart=count($cartdata);
-                                    $store->totalwish=count($wishdata);
-                             $response = array("status" =>1, "msg" => "Login Successfully","data"=>$store);
-                        }
-                        
-                   
-                 }
-            }
-            return Response::json(array("data"=>$response));
-   }
- public function file_get_contents_curl($url) {
+public function file_get_contents_curl($url) {
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_AUTOREFERER, TRUE);
 		curl_setopt($ch, CURLOPT_HEADER, 0);
@@ -1441,207 +1095,476 @@ class ApiController extends Controller {
          return Response::json(array("data"=>$response));
    }
 
-   public function userregister(Request $request){
-      $response = array("status" => "0", "msg" => "Validation error");
-       $rules = [
-                  'name' => 'required',
-                  'email' => 'required|unique:users',
-                  'password' => 'required',
-                  'phone'=>'required',
-                  "token"=>"required"
-                  //add more fields here, country, nearest area etc.              
-                ];                    
-        $messages = array(
-                  'name.required' => "name is required",
-                  'email.unique' => 'Email Already exist',
-                  'email.required' => "email are required",                      
-                  'password.required' => "password is required",
-                  'phone.required'=>"phone is required",
-                  'token.required'=>"Token is required"
-        );
+   public function Showlogin(Request $request){
+   $db_sqlsrv = DB::connection('sqlsrv');
+      
+      // var_dump($request->input('login_type'));
+      //var_dump($user[0]);
 
-        $validator = Validator::make($request->all(), $rules, $messages);
-        
-        if ($validator->fails()) {
-            $message = '';
-            $messages_l = json_decode(json_encode($validator->messages()), true);
-            foreach ($messages_l as $msg) {
-                $message .= $msg[0] . ", ";
-            }
-            $response['msg'] = $message;
+      // exit("Hi");
+      // NTT_ENTITY_STATUS
+      $response = array("success" => "0", "register" => "Validation error");
+         $rules = [
+                    'login_type' => 'required',
+                    'token' => 'required',
+                    'token_type'=>'required',
+                    'email' => 'required'      
+                  ];
+                  if($request->input('login_type')=='1'){
+                      $rules['password'] = 'required';
+                  }
+                  if($request->input('login_type')=='2'||$request->input('login_type')=='3'){
+                      $rules['soical_id'] = 'required';
+                      $rules['name']='required';
+                  }
+                 
+          $messages = array(
+                    'login_type.required' => "login_type is required",
+                    'token.required' => "token is required",
+                    'token_type.required' => "token_type is required",
+                    'email.required' => "email is required",
+                    'password.required'=>"password is required",
+                    "soical_id.required"=>"soical_id is required",
+                    "name.required"=>"name is required"
+          );
+          $validator = Validator::make($request->all(), $rules, $messages);
+          if ($validator->fails()) {
+                $message = '';
+                $messages_l = json_decode(json_encode($validator->messages()), true);
+                foreach ($messages_l as $msg) {
+                       $message .= $msg[0] . ", ";
+                }
+                $response['register'] = $message;
+          } else {
+                  $setting=Setting::on('sqlsrv')->find(1);
+
+                  // echo($setting);
+                  // exit();
+                     // $setting = $db_sqlsrv->table('setting')->get();
+
+                  //   var_dump($user);
+                  //          exit();
+
+                  // if($request->input('login_type')=='1'){
+                  // $user = $db_sqlsrv->select('exec [RiteBuy2016DevDB].[dbo].[SPLoginUser] ?,?',array($request->get("email"),$request->get("password")));
+                  
+
+                  if($request->input('login_type')=='1'){
+                     $user=EntityAdvertizer::on('sqlsrv')->where("NTT_LOGIN_EMAIL_ADDRESS",$request->get("email"))->where("NTT_PASSWORD",$request->get("password"))->first();
+                     
+                     
+                     if($user){
+                            if($setting->customer_reg_email=='1'&&$user->NTT_ENTITY_STATUS==0){
+                                 $response = array("status" =>0, "msg" => "Please Verified Your Email");
+                            }
+                            else{
+                           $gettoken=Token::on('sqlsrv')->where("token",$request->get("token"))->first();
+                           // echo($gettoken); 
+                           // exit();
+                           if(!$gettoken){
+                                   $store=new Token();
+                                   $store->setConnection('sqlsrv');
+                                   $store->token=$request->get("token");
+                                   $store->type=$request->get("token_type");
+                                   $store->user_id=$user->id;
+                                   $store->save();
+
+                                   echo($gettoken); 
+                                    exit();
+                            }
+                            else{
+                                 // $gettoken->user_id=$user->id;
+                                 // $gettoken->save();
+
+                                 // //====== AFTER
+
+                                 $gettoken = $db_sqlsrv->table('Token')->insert(['user_id' => $user->NTT_ENTITY_ADVERTIZER_ID]);
+                            }
+                                  
+                                   if($user->soical_id==null){
+                                      $user->soical_id="";
+                                   }
+                                 if($user->billing_address==null){
+                                    $user->billing_address="";
+                                 }
+                                 if($user->shipping_address==null){
+                                    $user->shipping_address="";
+                                 }
+                                 if($user->profile_pic==null){
+                                    $user->profile_pic="";
+                                 }
+                                 if($user->first_name==null){
+                                    $user->first_name="";
+                                 }
+                                 if($user->address==null){
+                                    $user->address="";
+                                 }
+                                 if($user->phone==null){
+                                    $user->phone="";
+                                 }
+                                 if($user->last_name==null){
+                                    $user->last_name="";
+                                 }
+                                  $cartdata=CartData::where("user_id",$user->id)->get();
+                                  $wishdata=Wishlist::where("user_id",$user->id)->get();
+                                  $user->cart=count($cartdata);
+                                  $user->totalwish=count($wishdata);
+                                    $response = array("status" =>1, "msg" => "Login Successfully","data"=>$user);
+                             
+                              }
+                              }
+                            }
+                          else{
+                               $response = array("status" =>0, "msg" => "Login Credentials Are Wrong");
+                          
+               }
+               if($request->input('login_type')=='2'){
+                  $checkuser=User::where("email",$request->get("email"))->orwhere("soical_id",$request->get("soical_id"))->first();
+                  if($checkuser){//login
+                    $gettoken=Token::where("token",$request->get("token"))->first();
+                            if(!$gettoken){
+                                   $store=new Token();
+                                  $store->token=$request->get("token");
+                           $store->type=$request->get("token_type");
+                           $store->user_id=$checkuser->id;
+                           $store->save();
+                            }
+                             else{
+                                   $gettoken->user_id=$checkuser->id;
+                                   $gettoken->save();
+                            }
+                        
+                        if($checkuser->soical_id==null){
+                                    $checkuser->soical_id="";
+                                 }
+                                 if($checkuser->billing_address==null){
+                                    $checkuser->billing_address="";
+                                 }
+                                 if($checkuser->shipping_address==null){
+                                    $checkuser->shipping_address="";
+                                 }
+                                 if($checkuser->profile_pic==null){
+                                    $checkuser->profile_pic="";
+                                 }
+                                 if($checkuser->first_name==null){
+                                    $checkuser->first_name="";
+                                 }
+                                 if($checkuser->address==null){
+                                    $checkuser->address="";
+                                 }
+                                 if($checkuser->phone==null){
+                                    $checkuser->phone="";
+                                 }
+                                 if($checkuser->last_name==null){
+                                    $checkuser->last_name="";
+                                 }
+                                  if($checkuser->permissions==null){
+                                    $checkuser->permissions="";
+                                 }
+                                  if($checkuser->last_login==null){
+                                    $checkuser->last_login="";
+                                 }
+                                
+                                   if($request->get("image")!=""){
+                                       $png_url = "profile-".mt_rand(100000, 999999).".png";
+                                       $path = public_path().'/upload/profile/' . $png_url;
+                                       $content=$this->file_get_contents_curl($request->get("image"));
+                                          $savefile = fopen($path, 'w');
+                                          fwrite($savefile, $content);
+                                          fclose($savefile);
+                                          $img=public_path().'/upload/profile/' . $png_url;
+                                        $checkuser->profile_pic=$png_url;
+                                   }
+                         
+                                  $checkuser->soical_id=$request->get("soical_id");
+                                  $checkuser->login_type=$request->input('login_type');
+                                  $checkuser->save();
+                                  $cartdata=CartData::where("user_id",$checkuser->id)->get();
+                                  $wishdata=Wishlist::where("user_id",$checkuser->id)->get();
+                                  $checkuser->cart=count($cartdata);
+                                  $checkuser->totalwish=count($wishdata);
+                         $response = array("status" =>1, "msg" => "Login Successfully","data"=>$checkuser);
+                  }
+                  else{//register
+                     
+                          $png_url="";
+                          if($request->get("image")!=""){
+                               $png_url = "profile-".mt_rand(100000, 999999).".png";
+                               $path = public_path().'/upload/profile/' . $png_url;
+                               $content=$this->file_get_contents_curl($request->get("image"));
+                                          $savefile = fopen($path, 'w');
+                                          fwrite($savefile, $content);
+                                          fclose($savefile);
+                                          $img=public_path().'/upload/profile/' . $png_url;
+                          }
+                          $str=explode(" ", $request->get("name"));
+                          $store=new User();
+                          $store->first_name=$str[0];
+                          $store->email=$request->get("email");
+                          $store->login_type=$request->get("login_type");
+                          $store->is_email_verified="1";
+                          $store->profile_pic=$png_url;
+                          $store->soical_id=$request->get("soical_id");
+                          $store->save();
+                          $gettoken=Token::where("token",$request->get("token"))->update(["user_id"=>$store->id]);
+                           if($store->soical_id==null){
+                                    $store->soical_id="";
+                                 }
+                                 if($store->billing_address==null){
+                                    $store->billing_address="";
+                                 }
+                                 if($store->shipping_address==null){
+                                    $store->shipping_address="";
+                                 }
+                                 if($store->profile_pic==null){
+                                    $store->profile_pic="";
+                                 }
+                                 if($store->first_name==null){
+                                    $store->first_name="";
+                                 }
+                                 if($store->address==null){
+                                    $store->address="";
+                                 }
+                                 if($store->phone==null){
+                                    $store->phone="";
+                                 }
+                                 if($store->last_name==null){
+                                    $store->last_name="";
+                                 }
+                                   if($store->permissions==null){
+                                    $store->permissions="";
+                                 }
+                                  if($store->last_login==null){
+                                    $store->last_login="";
+                                 }
+
+                                  $cartdata=CartData::where("user_id",$store->id)->get();
+                                  $wishdata=Wishlist::where("user_id",$store->id)->get();
+                                  $store->cart=count($cartdata);
+                                  $store->totalwish=count($wishdata);
+                           $response = array("status" =>1, "msg" => "Login Successfully","data"=>$store);
+                    
+                      
+                  }
+               }
+              if($request->input('login_type')=='3'){
+                     $checkuser=User::where("email",$request->get("email"))->orwhere("soical_id",$request->get("soical_id"))->first();
+                  if($checkuser){//login
+                    
+                        $gettoken=Token::where("token",$request->get("token"))->first();
+                            if(!$gettoken){
+                                   $store=new Token();
+                         $store->token=$request->get("token");
+                         $store->type=$request->get("token_type");
+                         $store->user_id=$checkuser->id;
+                         $store->save();
+                            } else{
+                                   $gettoken->user_id=$checkuser->id;
+                                   $gettoken->save();
+                            }
+                          if($checkuser->soical_id==null){
+                                    $checkuser->soical_id="";
+                                 }
+                         
+                                 if($checkuser->billing_address==null){
+                                    $checkuser->billing_address="";
+                                 }
+                                 if($checkuser->shipping_address==null){
+                                    $checkuser->shipping_address="";
+                                 }
+                                 if($checkuser->profile_pic==null){
+                                    $checkuser->profile_pic="";
+                                 }
+                                 if($checkuser->first_name==null){
+                                    $checkuser->first_name="";
+                                 }
+                                 if($checkuser->address==null){
+                                    $checkuser->address="";
+                                 }
+                                 if($checkuser->phone==null){
+                                    $checkuser->phone="";
+                                 }
+                                 if($checkuser->last_name==null){
+                                    $checkuser->last_name="";
+                                 }
+                                  if($checkuser->permissions==null){
+                                    $checkuser->permissions="";
+                                 }
+                                  if($checkuser->last_login==null){
+                                    $checkuser->last_login="";
+                                 }
+                                 if($request->get("image")!=""){
+                                          $png_url = "profile-".mt_rand(100000, 999999).".png";
+                                          $path = public_path().'/upload/profile/' . $png_url;
+                                          $content=$this->file_get_contents_curl($request->get("image"));
+                                          $savefile = fopen($path, 'w');
+                                          fwrite($savefile, $content);
+                                          fclose($savefile);
+                                          $img=public_path().'/upload/profile/' . $png_url;
+                                          $checkuser->profile_pic=$png_url;
+                                   }
+                         
+                                  $checkuser->soical_id=$request->get("soical_id");
+                                  $checkuser->login_type=$request->input('login_type');
+                                  $checkuser->save();
+                                  $cartdata=CartData::where("user_id",$checkuser->id)->get();
+                                  $wishdata=Wishlist::where("user_id",$checkuser->id)->get();
+                                  $checkuser->cart=count($cartdata);
+                                  $checkuser->totalwish=count($wishdata);
+                         $response = array("status" =>1, "msg" => "Login Successfully","data"=>$checkuser);
+                  }
+                  else{//register
+                     
+                          $png_url="";
+                          if($request->get("image")!=""){
+                               $png_url = "profile-".mt_rand(100000, 999999).".png";
+                               $content=$this->file_get_contents_curl($request->get("image"));
+                                          $savefile = fopen($path, 'w');
+                                          fwrite($savefile, $content);
+                                          fclose($savefile);
+                                          $img=public_path().'/upload/profile/' . $png_url;
+                          }
+                          $str=explode(" ", $request->get("name"));
+                          $store=new User();
+                          $store->first_name=$str[0];
+                          $store->email=$request->get("email");
+                          $store->login_type=$request->get("login_type");
+                          $store->profile_pic=$png_url;
+                          $store->is_email_verified="1";
+                          $store->soical_id=$request->get("soical_id");
+                          $store->save();
+                          $gettoken=Token::where("token",$request->get("token"))->update(["user_id"=>$store->id]);
+                          if($store->soical_id==null){
+                                    $store->soical_id="";
+                                 }
+                                 if($store->billing_address==null){
+                                    $store->billing_address="";
+                                 }
+                                 if($store->shipping_address==null){
+                                    $store->shipping_address="";
+                                 }
+                                 if($store->profile_pic==null){
+                                    $store->profile_pic="";
+                                 }
+                                 if($store->first_name==null){
+                                    $store->first_name="";
+                                 }
+                                 if($store->address==null){
+                                    $store->address="";
+                                 }
+                                 if($store->phone==null){
+                                    $store->phone="";
+                                 }
+                                 if($store->last_name==null){
+                                    $store->last_name="";
+                                 }
+                                   if($store->permissions==null){
+                                    $store->permissions="";
+                                 }
+                                  if($store->last_login==null){
+                                    $store->last_login="";
+                                 }
+                                 $cartdata=CartData::where("user_id",$store->id)->get();
+                                  $wishdata=Wishlist::where("user_id",$store->id)->get();
+                                  $store->cart=count($cartdata);
+                                  $store->totalwish=count($wishdata);
+                           $response = array("status" =>1, "msg" => "Login Successfully","data"=>$store);
+                      }
+                      
+                 
+               }
+          }
+          return Response::json(array("data"=>$response));
+ }
+
+
+ public function userregister(Request $request){
+   $response = array("status" => "0", "msg" => "Validation error");
+    $rules = [
+               'name' => 'required',
+               'email' => 'required|unique:users',
+               'password' => 'required',
+               'phone'=>'required',
+               "token"=>"required"
+               //add more fields here, country, nearest area etc.              
+             ];                    
+     $messages = array(
+               'name.required' => "name is required",
+               'email.unique' => 'Email Already exist',
+               'email.required' => "email are required",                      
+               'password.required' => "password is required",
+               'phone.required'=>"phone is required",
+               'token.required'=>"Token is required"
+     );
+
+     $validator = Validator::make($request->all(), $rules, $messages);
+     
+     if ($validator->fails()) {
+         $message = '';
+         $messages_l = json_decode(json_encode($validator->messages()), true);
+         foreach ($messages_l as $msg) {
+             $message .= $msg[0] . ", ";
          }
-         else 
-         {
-            $setting=Setting::find(1);
-            //$checkExistingWebUser = DB::connection('sqlsrv')->select('exec [RiteBuy2016DevDB].[dbo].[SP_ChkExistEmail] ?',[$request->get("email")]);
-            $user =EntityAdvertizer::on('sqlsrv')->where("NTT_LOGIN_EMAIL_ADDRESS",$request->get("email"))->get(); 
-            if(count($user)==0){
+         $response['msg'] = $message;
+      }else {
+         $setting=Setting::find(1);
+         //$checkExistingWebUser = DB::connection('sqlsrv')->select('exec [RiteBuy2016DevDB].[dbo].[SP_ChkExistEmail] ?',[$request->get("email")]);
+         $user = EntityAdvertizer::on('sqlsrv')->where("NTT_LOGIN_EMAIL_ADDRESS",$request->get("email"))->get(); 
+         echo($user);
+         $users=new EntityAdvertizer();
+            
+         if(count($user)==0){
 
-               // $currentDate = strtotime(date_default_timezone_get());
-               // $dateTostring = date('Y-m-d',$currentDate);
-               // echo $dateTostring;
+            // $currentDate = strtotime(date_default_timezone_get());
+            // $dateTostring = date('Y-m-d',$currentDate);
+            // echo $dateTostring;
 
-               $EntityLoginEmail=$request->get("email");
-               $Password=$request->get("password");
-               $EntityName=$request->get("name");
-               $Mobile=$request->get("phone");
-               //$LastModified = $dateTostring;
-               $LastModified = "2012-02-21T18:10:00"; //TODO//$dateTostring; //Conversion failed when converting date and/or time from character string
-               $Country = 1; //get('country') from Android's Dropdown
-               $NEARESTAREA = 2; //get('nearest_area') from Android's Dropdown convert int
-               $ACCTYPE = "Private"; 
-               $NTT_IS_REGISTERD_FOR_NEWS_LETTER = 0;
-               $MAILCHIMPUSERID = "0";
-               $FreeFeaturedAdDefault = 3;
-               $FreeBumpAdDefault = "2";  
+            //TODO we may want to add fields (login_type,user_type,is_email_verified etc)
+            $EntityLoginEmail=$request->get("email");
+            $Password=$request->get("password");
+            $EntityName=$request->get("name");
+            $Mobile=$request->get("phone");
+            //$LastModified = $dateTostring;
+            $LastModified = "2012-02-21T18:10:00"; //TODO//$dateTostring; //Conversion failed when converting date and/or time from character string
+            $Country = 1; //get('country') from Android's Dropdown
+            $NEARESTAREA = 2; //get('nearest_area') from Android's Dropdown convert int
+            $ACCTYPE = "Private"; 
+            $NTT_IS_REGISTERD_FOR_NEWS_LETTER = 0;
+            $MAILCHIMPUSERID = "0";
+            $FreeFeaturedAdDefault = 3;
+            $FreeBumpAdDefault = "2";  
 
-               //SPSaveSignupDetails = 0 mean data is inserted.
-               $SPSaveSignupDetails = DB::connection('sqlsrv')->update('SET NOCOUNT ON exec [RiteBuy2016DevDB].[dbo].[SPSaveSignupDetails] ?,?,?,?,?,?,?,?,?,?,?,?',array(
-                  $EntityLoginEmail,
-                  $Password,
-                  $EntityName,
-                  $Mobile,
-                  $LastModified,
-                  $Country,
-                  $NEARESTAREA,
-                  $ACCTYPE,
-                  $NTT_IS_REGISTERD_FOR_NEWS_LETTER,
-                  $MAILCHIMPUSERID,
-                  $FreeFeaturedAdDefault,
-                  $FreeBumpAdDefault
-               ));
-               
-               $gettoken=Token::on('sqlsrv')->where("token",$request->get("token"))->update(["user_id"=>$user->NTT_ENTITY_ADVERTIZER_ID]);
-               $response = array("status" =>1, "msg" => "Register Successfully","data"=>$user);
-               
-            }
-            else if(count($user)!=0){
-               $response = array("status" =>0, "msg" => "User Already Exists");
-            }
-            else{
-              $response = array("status" =>0, "msg" => "Something wrong");
-             }                
+            //SPSaveSignupDetails = 0 mean data is inserted.
+            $SPSaveSignupDetails = DB::connection('sqlsrv')->update('SET NOCOUNT ON exec [RiteBuy2016DevDB].[dbo].[SPSaveSignupDetails] ?,?,?,?,?,?,?,?,?,?,?,?',array(
+               $EntityLoginEmail,
+               $Password,
+               $EntityName,
+               $Mobile,
+               $LastModified,
+               $Country,
+               $NEARESTAREA,
+               $ACCTYPE,
+               $NTT_IS_REGISTERD_FOR_NEWS_LETTER,
+               $MAILCHIMPUSERID,
+               $FreeFeaturedAdDefault,
+               $FreeBumpAdDefault
+            ));
+            
+            $userNtt = EntityAdvertizer::on('sqlsrv')->where("NTT_LOGIN_EMAIL_ADDRESS",$request->get("email"))->first(); 
+            $gettoken=Token::on('sqlsrv')->where("token",$request->get("token"))->update(["user_id"=>$userNtt->NTT_ENTITY_ADVERTIZER_ID]);
+            $response = array("status" =>1, "msg" => "Register Successfully","data"=>$user);
+            
          }
+         else if(count($user)!=0){
+            $response = array("status" =>0, "msg" => "User Already Exists");
+         }
+         else{
+           $response = array("status" =>0, "msg" => "Something wrong");
+          }                
+      }
 
-      return $response;
+   return $response;
 }
-
-public function testconnection(Request $request){
-
-      // $serverName = "localhost\SQLEXPRESS"; //serverName\instanceName
-      // $connectionInfo = array( "Database"=>"RiteBuy2016DevDB");
-      // $conn = sqlsrv_connect( $serverName, $connectionInfo);
-
-      // if( $conn ) {
-      //    echo "Connection established.<br />";
-      // }else{
-      //    echo "Connection could not be established.<br />";
-      //    die( print_r( sqlsrv_errors(), true));
-      // }
-
-      $currentDate = strtotime(date_default_timezone_get());
-               $dateTostring = date('Y-m-d',$currentDate);
-               // echo $dateTostring;
-      //====================================
-
-            // DB::connection('sqlsrv')->select('exec my_stored_procedure(?,?,..)',array($Param1,$param2));
-      $email = 'ch-atif@hotmail.com';
-      $Password = 'd8c2e774eb85db5558f8d7165e78b7679e04dedb33b1192598cadceee0b98fce';
-      //$loginResponse = DB::connection('sqlsrv')->select('exec [RiteBuy2016DevDB].[dbo].[SPLoginUser] ?,?',[$email,$password]);
-      //$req=$request->get("email");
-      //$checkExistingWebUser = DB::connection('sqlsrv')->select('exec [RiteBuy2016DevDB].[dbo].[SP_ChkExistEmail] ?',array($req));
-      $spLogin = DB::connection('sqlsrv')->select('exec [RiteBuy2016DevDB].[dbo].[SPLoginUser] ?,?',array($email,$Password));
-      //$user=User::where("email",$request->get("email"))->where("password",$request->get("password"))->first();
-           
-               // $EntityLoginEmail="ch-atif5@gmail.com";
-               // $EntityName="chat";
-               // $Mobile='0202';
-               // $LastModified = "2012-02-21T18:10:00"; //$dateTostring; //Conversion failed when converting date and/or time from character string
-               // $Country = 1; //get('country') from Android's Dropdown
-               // $NEARESTAREA = 2; //get('nearest_area') from Android's Dropdown convert int
-               // $ACCTYPE = "Private"; 
-               // $NTT_IS_REGISTERD_FOR_NEWS_LETTER = 0;
-               // $MAILCHIMPUSERID = "0";
-               // $FreeFeaturedAdDefault = 3;
-               // $FreeBumpAdDefault = 2;   
-
-               // //retuns zero if success
-               // $SPSaveSignupDetails = DB::connection('sqlsrv')->select('exec [RiteBuy2016DevDB].[dbo].[SPSaveSignupDetails] ?,?,?,?,?,?,?,?,?,?,?,?',array(
-               //    $EntityLoginEmail,
-               //    $Password,
-               //    $EntityName,
-               //    $Mobile,
-               //    $LastModified,
-               //    $Country,
-               //    $NEARESTAREA,
-               //    $ACCTYPE,
-               //    $NTT_IS_REGISTERD_FOR_NEWS_LETTER,
-               //    $MAILCHIMPUSERID,
-               //    $FreeFeaturedAdDefault,
-               //    $FreeBumpAdDefault
-               // ));
-
-               //echo($user);
-               // foreach ($spLogin as $spLogin) {
-               //    echo $spLogin->NTT_ENTITY_ADVERTIZER_ID;
-               // }
-               echo $spLogin->NTT_ENTITY_ADVERTIZER_ID;
-
-               // echo '<pre>';
-               // var_dump($spLogin->$NTT_ENTITY_ADVERTIZER_ID);
-
-               // if($SPSaveSignupDetails == 0){
-               //    echo "Form Submitted";
-               // }
-
-
-// $users = DB::connection('sqlsrv')->select('SELECT * FROM [RiteBuy2016DevDB].[dbo].[Tbl_EntityAdvertizer]');
-
-
-//=======================================
-      // phpinfo();exit;
-//       $serverName = "localhost\SQLEXPRESS";
-//       $database = "RiteBuy2016DevDB";
-
-//       $connectionInfo = array( "Database"=>"RiteBuy2016DevDB");
-//       $conn = sqlsrv_connect( $serverName, $connectionInfo);
-//    // DB::connection()->statement($conn);
-//    // DB::connection('sqlsrv')->statement($conn);
-
-
-//         if( $conn ) {
-//             echo "Connection established.<br />";
-
-//             $sql = "SELECT * FROM [RiteBuy2016DevDB].[dbo].[Tbl_EntityAdvertizer]";
-            
-// # Email = 'ch-atif@hotmail.com' 
-// # Password = 'd8c2e774eb85db5558f8d7165e78b7679e04dedb33b1192598cadceee0b98fce'
-//             // array('field' => $_POST["userlogin"])
-//             // $params = array('ch-atif@hotmail.com');
-            
-//             $stmt = sqlsrv_query( $conn, $sql);
-//             echo $stmt;
-
-//             if( $stmt === false ) {
-//                 die( print_r( sqlsrv_errors(), true));
-//             }
-
-//             while( $row = sqlsrv_fetch_array( $stmt, SQLSRV_FETCH_ASSOC) ) {
-//                 echo '<pre>'.print_r($row)."<br />";
-//             }
-
-//             sqlsrv_free_stmt( $stmt);
-
-//         }else{
-//             echo "Connection could not be established.<br />";
-//             die( print_r( sqlsrv_errors(), true));
-//         }
-
-//         exit();
-
-   
-   }
-
 }
 ?>
 

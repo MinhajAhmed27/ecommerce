@@ -4,6 +4,8 @@ use Illuminate\Support\Str;
 
 return [
 
+    'fetch' => PDO::FETCH_ASSOC,
+    // 'fetch' => PDO::FETCH_CLASS,
     /*
     |--------------------------------------------------------------------------
     | Default Database Connection Name
@@ -16,6 +18,8 @@ return [
     */
 
     'default' => env('DB_CONNECTION', 'mysql'),
+    // 'default' => env('DB_CONNECTION', 'sqlsrv'),
+    // 'default' => env('DB_CONNECTION_SECOND', 'sqlsrv'),
 
     /*
     |--------------------------------------------------------------------------
@@ -63,6 +67,20 @@ return [
             ]) : [],
         ],
 
+        'sqlsrv' => [
+            'driver' => 'sqlsrv',
+            'url' => env('DATABASE_URL'),
+            'host' => env('DB_HOST_SQLSERVER', '127.0.0.1'),
+            'port' => env('DB_PORT_SQLSERVER', '1433'),
+            'database' => env('DB_DATABASE_SQLSERVER', 'forge'),
+            'username' => env('DB_USERNAME_SQLSERVER', 'forge'),
+            'password' => env('DB_PASSWORD_SQLSERVER', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            
+        ],
+
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DATABASE_URL'),
@@ -76,19 +94,6 @@ return [
             'prefix_indexes' => true,
             'schema' => 'public',
             'sslmode' => 'prefer',
-        ],
-
-        'sqlsrv' => [
-            'driver' => 'sqlsrv',
-            'url' => env('DATABASE_URL'),
-            'host' => env('DB_HOST', 'localhost'),
-            'port' => env('DB_PORT', '1433'),
-            'database' => env('DB_DATABASE', 'forge'),
-            'username' => env('DB_USERNAME', 'forge'),
-            'password' => env('DB_PASSWORD', ''),
-            'charset' => 'utf8',
-            'prefix' => '',
-            'prefix_indexes' => true,
         ],
 
     ],
